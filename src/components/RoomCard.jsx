@@ -15,11 +15,10 @@ const RoomCard = forwardRef(({ room }, ref) => {
                 {images.map((image, index) => <Image key={index} image={image} />)}
                 <div className='py-2 px-5'>
                     <div className="flex justify-between items-center pt-3">
-                        <p className='text-lg font-semibold line-clamp-1'>{room.name}</p>
-                        <p className='pb-2 text-lg text-slate-500'>Rs.1234</p>
+                        <p className='font-semibold line-clamp-1'>{room.name}</p>
+                        <h3 className='text-lg text-slate-500'>{room.variants[0].total_price.currency} {room.variants[0].total_price.total_price}</h3>
                     </div>
                     <div className="text-center my-5">
-                        {room.room_type_code}
                         <Link to={`/room-in-detail/${room.room_type_code}`} className='bg-green-600 text-white px-5 py-2 rounded-lg'>Book Room</Link>
                     </div>
                 </div>
