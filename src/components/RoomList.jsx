@@ -1,58 +1,69 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import RoomCard from './RoomCard'; // Your custom RoomCard component
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import axios from 'axios';
+import RoomCard from './RoomCard'; // Your custom RoomCard component
 import { FaSpinner } from 'react-icons/fa6';
+import { LuLoader2 } from 'react-icons/lu';
 
 const RoomList = () => {
-    const [rooms, setRooms] = useState([]); // State to hold the rooms data
-    const [loading, setLoading] = useState(true); // State to track loading status
-    const [error, setError] = useState(null); // State to track any errors
-    const [page, setPage] = useState(1);// Current page number
-    const [hasMore, setHasMore] = useState(true);
-    const observer = useRef(); //to track the last element in the list
+    const [rooms, setRooms] = useState([]); // State to hold all the rooms data
+    const [loading, setLoading] = useState(true); // Loading state for initial data load
+    const [loadingMore, setLoadingMore] = useState(false); // Loading state for infinite scroll
+    const [error, setError] = useState(null); // Error state
+    const [page, setPage] = useState(1); // Page number
+    const itemsPerPage = 10; // Number of items per page
+    const observer = useRef(); // Ref for the intersection observer
 
-
-    // fetch rooms based on the current page
-    const fetchRooms = useCallback(async () => {
-        setLoading(true);
-        try {
-            const response = await axios.get(`/db.json?page=${page}`);
-            const newRooms = response.data.rooms_by_serial_no[0].rooms;
-            setRooms((prevRooms) => [...prevRooms, ...newRooms]);
-            if (newRooms.length === 0) {
-                setHasMore(false);
-            }
-            setPage(prevPage => prevPage + 1);
-        } catch (error) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    }, [page]);
-
-    // Fetch the JSON data from the public folder
+    // Fetch the entire JSON data on component mount
     useEffect(() => {
-        // axios.get('/db.json')
-        //     .then(response => {
-        //         setRooms(response.data.rooms_by_serial_no[0].rooms); // Set the rooms data from JSON
-        //         setLoading(false); // Set loading to false when data is fetched
-        //     })
-        //     .catch(err => {
-        //         setError(err.message); // Set the error message if something goes wrong
-        //         setLoading(false); // Set loading to false even on error
-        //     });
-
+        const fetchRooms = async () => {
+            setLoading(true); // Show the initial loader
+            try {
+                const response = await axios.get('/db.json');
+                setRooms(response.data.rooms_by_serial_no[0].rooms); // Store all rooms data
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false); // Hide the initial loader
+            }
+        };
         fetchRooms();
     }, []);
 
+    // console.log(rooms, filteredRoom);
 
-    // Intersection Observer to detect when the last RoomCard is visible
 
-    const lastRoomElementRef = useCallback(() => { }, [])
+    // Paginate and fetch more rooms as the page increases
+    const paginatedRooms = rooms.slice(0, page * itemsPerPage); // Show rooms based on the current page
 
-    // Display a loading message or error if needed
+    // Intersection Observer to detect when the last room is in view
+    const lastRoomElementRef = useCallback(
+        (node) => {
+            if (loadingMore) return; // Don't trigger observer if loading more rooms
+            if (observer.current) observer.current.disconnect(); // Disconnect previous observer
+
+            // Create a new observer
+            observer.current = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting && paginatedRooms.length < rooms.length) {
+                    setLoadingMore(true); // Show the loading spinner when fetching more rooms
+                    setTimeout(() => {
+                        setPage((prevPage) => prevPage + 1); // Load next page when last room is in view
+                        setLoadingMore(false); // Hide the loading spinner after data is fetched
+                    }, 1000); // Simulate delay for loading
+                }
+            });
+
+            if (node) observer.current.observe(node); // Observe the last room card
+        },
+        [loadingMore, paginatedRooms, rooms]
+    );
+
+    // Display a loading spinner if the data is still loading
     if (loading) {
-        return <div className="flex justify-center h-screen items-center"><FaSpinner className='animate-spin text-green-500' size={50} /></div>;
+        return (
+            <div className="flex justify-center h-screen items-center">
+                <FaSpinner className="animate-spin text-green-500" size={50} />
+            </div>
+        );
     }
 
     if (error) {
@@ -60,14 +71,31 @@ const RoomList = () => {
     }
 
     return (
-        <div className='bg-slate-200 p-5'>
-            <div className='py-5'>
-                <h1 className='text-center font-bold text-xl text-green-700'>ROOM BOOKING SERVICE</h1>
+        <div className="bg-slate-200 p-5">
+            <div className="py-5">
+                <h1 className="text-center font-bold text-xl text-green-700">ROOM BOOKING SERVICE</h1>
             </div>
-            <div className='grid grid-cols-3 gap-5 justify-between '>
-                {rooms.map((room, index) => (
-                    <RoomCard key={index} room={room} /> // Render RoomCard component for each room
-                ))}
+            <div className="grid md:grid-cols-1 lg:grid-cols-3 gap-5 justify-between">
+                {paginatedRooms.map((room, index) => {
+                    if (loadingMore) {
+                        return (
+                            <div className='px-2 py-5'>
+                                <div className='w-full gap-5 shadow bg-white rounded-lg p-5'>
+                                    <div className="skeleton skeleton-img"></div>
+                                    <div className="skeleton skeleton-text"></div>
+                                    <div className="skeleton skeleton-text"></div>
+                                    <div className="skeleton skeleton-btn"></div>
+                                </div>
+                            </div>
+                        );
+                    }
+                    if (paginatedRooms.length === index + 1) {
+                        // Attach observer to the last room card
+                        return <RoomCard ref={lastRoomElementRef} key={index} room={room} />;
+                    } else {
+                        return <RoomCard key={index} isLoading={loading} room={room} />;
+                    }
+                })}
             </div>
         </div>
     );

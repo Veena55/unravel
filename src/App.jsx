@@ -6,17 +6,20 @@ import RoomCard from './components/RoomCard'
 import { BrowserRouter, Route, Router, Routes } from 'react-router-dom'
 import RoomDetails from './components/RoomDetails'
 import RoomList from './components/RoomList'
+import { Provider } from 'react-redux'
+import store from './redux/store'
 
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path='/' element={<RoomList />} />
-        <Route path='/room-in-detail' element={<RoomDetails />} />
-      </Routes>
-    </BrowserRouter>
+    <Provider store={store}>
+      <BrowserRouter>
+        <Routes>
+          <Route path='/' element={<RoomList />} />
+          <Route path='/room-in-detail/:roomId' element={<RoomDetails />} />
+        </Routes>
+      </BrowserRouter>
+    </Provider>
 
   )
 }
