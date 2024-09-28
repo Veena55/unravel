@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Link, useParams } from 'react-router-dom';
 import { filterRooms } from '../redux/slices/roomSlice';
 import Video from './Video';
+import Image from './Image';
 
 const RoomDetails = () => {
     const [loading, setLoading] = useState(true);
@@ -48,6 +49,7 @@ const RoomDetails = () => {
 
     const images = room.properties.room_images || [];
     const video = room.properties.video_url;
+
     return (
         <div className='p-2'>
             <div className='w-full gap-5 shadow'>
